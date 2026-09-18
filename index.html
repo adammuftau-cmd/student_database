@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#6E3FAE">
+<title>Graduate Tracer</title>
+<meta name="description" content="Offline-first student tracer app: manage houses, programmes and the graduate list.">
+
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<div class="shell">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <img src="icons/icon-192.png" alt="" class="brand-mark">
+      <div>
+        <p class="brand-name" id="brandName">GTVET Institute</p>
+        <p class="brand-sub">Graduate Tracer</p>
+      </div>
+    </div>
+
+    <nav class="nav" aria-label="Sections">
+      <button class="nav-item is-active" data-view="dashboard" type="button">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 13h6V4H4v9zM14 20h6V9h-6v11zM4 20h6v-4H4v4zM14 7h6V4h-6v3z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Dashboard
+      </button>
+      <button class="nav-item" data-view="students" type="button">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6M12 12a4 4 0 100-8 4 4 0 000 8z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Students
+        <span class="nav-count" id="countStudents">0</span>
+      </button>
+      <button class="nav-item" data-view="houses" type="button">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 11.5L12 4l8 7.5M6 10v9h12v-9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Houses
+        <span class="nav-count" id="countHouses">0</span>
+      </button>
+      <button class="nav-item" data-view="programs" type="button">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 6.5L12 3l8 3.5-8 3.5-8-3.5zM4 6.5v7l8 3.5 8-3.5v-7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Programmes
+        <span class="nav-count" id="countPrograms">0</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-foot">
+      <label class="settings-label" for="instituteNameInput">Institute name</label>
+      <input id="instituteNameInput" class="settings-input" type="text" placeholder="Institute name">
+      <p class="offline-note"><span class="dot"></span> Works offline — data stays on this device</p>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <!-- DASHBOARD VIEW -->
+    <section class="view is-active" id="view-dashboard" aria-labelledby="dashboardHeading">
+      <header class="view-header">
+        <div>
+          <h1 id="dashboardHeading">Dashboard</h1>
+          <p class="view-sub">A snapshot of your graduate list.</p>
+        </div>
+      </header>
+
+      <div class="stat-cards">
+        <div class="stat-card stat-card-accent">
+          <p class="stat-label">Total students</p>
+          <p class="stat-value" id="statTotal">0</p>
+        </div>
+        <div class="stat-card">
+          <p class="stat-label">Male</p>
+          <p class="stat-value" id="statMale">0</p>
+          <p class="stat-percent" id="statMalePct">0%</p>
+        </div>
+        <div class="stat-card">
+          <p class="stat-label">Female</p>
+          <p class="stat-value" id="statFemale">0</p>
+          <p class="stat-percent" id="statFemalePct">0%</p>
+        </div>
+        <div class="stat-card">
+          <p class="stat-label">Not specified</p>
+          <p class="stat-value" id="statUnspecified">0</p>
+        </div>
+      </div>
+
+      <div class="dash-grid">
+        <div class="dash-panel">
+          <h3>Students by house</h3>
+          <div class="bar-list" id="dashHouseBars"></div>
+          <p class="empty-state" id="dashHouseEmpty" hidden>No houses yet.</p>
+        </div>
+        <div class="dash-panel">
+          <h3>Top programmes</h3>
+          <div class="bar-list" id="dashProgramBars"></div>
+          <p class="empty-state" id="dashProgramEmpty" hidden>No programmes yet.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- STUDENTS VIEW -->
+    <section class="view" id="view-students" aria-labelledby="studentsHeading">
+      <header class="view-header">
+        <div>
+          <h1 id="studentsHeading">Graduate list</h1>
+          <p class="view-sub">Every graduate, their programme, house and contact details.</p>
+        </div>
+        <div class="view-actions">
+          <button class="btn btn-ghost" id="btnImportXlsx" type="button">Import Excel</button>
+          <input type="file" id="importFileInput" accept=".xlsx,.xls,.csv" hidden>
+          <button class="btn btn-ghost" id="btnPrint" type="button">Print</button>
+          <button class="btn btn-ghost" id="btnExportCsv" type="button">Export CSV</button>
+          <button class="btn btn-ghost" id="btnExportXlsx" type="button">Export Excel</button>
+          <button class="btn btn-primary" id="btnAddStudent" type="button">+ Add student</button>
+        </div>
+      </header>
+
+      <div class="toolbar">
+        <input type="search" id="studentSearch" class="search-input" placeholder="Search by name, ID, mobile...">
+        <select id="filterHouse" class="filter-select"><option value="">All houses</option></select>
+        <select id="filterProgram" class="filter-select"><option value="">All programmes</option></select>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table" id="studentsTable">
+          <thead>
+            <tr>
+              <th>Student ID</th>
+              <th>Full name</th>
+              <th>Sex</th>
+              <th>Programme</th>
+              <th>House</th>
+              <th>Exam type</th>
+              <th>Grad. year</th>
+              <th>Mobile</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="studentsTbody"></tbody>
+        </table>
+        <p class="empty-state" id="studentsEmpty" hidden>No students yet. Add your first graduate to get started.</p>
+      </div>
+    </section>
+
+    <!-- HOUSES VIEW -->
+    <section class="view" id="view-houses" aria-labelledby="housesHeading">
+      <header class="view-header">
+        <div>
+          <h1 id="housesHeading">Houses</h1>
+          <p class="view-sub">The houses graduates can be grouped into.</p>
+        </div>
+      </header>
+
+      <form class="inline-form" id="houseForm">
+        <input type="text" id="houseNameInput" placeholder="House name, e.g. Red House" required maxlength="60">
+        <div class="swatches" id="houseSwatches"></div>
+        <button class="btn btn-primary" type="submit">+ Add house</button>
+      </form>
+
+      <ul class="chip-list" id="houseList"></ul>
+      <p class="empty-state" id="housesEmpty" hidden>No houses yet. Add one above.</p>
+    </section>
+
+    <!-- PROGRAMS VIEW -->
+    <section class="view" id="view-programs" aria-labelledby="programsHeading">
+      <header class="view-header">
+        <div>
+          <h1 id="programsHeading">Programmes</h1>
+          <p class="view-sub">Trade and academic programmes offered at your institute.</p>
+        </div>
+      </header>
+
+      <form class="inline-form" id="programForm">
+        <input type="text" id="programNameInput" placeholder="Programme name" required maxlength="120">
+        <button class="btn btn-primary" type="submit">+ Add programme</button>
+      </form>
+
+      <ul class="chip-list" id="programList"></ul>
+      <p class="empty-state" id="programsEmpty" hidden>No programmes yet. Add one above.</p>
+    </section>
+
+  </main>
+</div>
+
+<!-- STUDENT MODAL -->
+<div class="modal-backdrop" id="studentModalBackdrop" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="studentModalTitle">
+    <div class="modal-head">
+      <h2 id="studentModalTitle">Add student</h2>
+      <button class="icon-btn" id="closeStudentModal" type="button" aria-label="Close">&times;</button>
+    </div>
+    <form id="studentForm" class="student-form">
+      <input type="hidden" id="studentId">
+
+      <fieldset>
+        <legend>Identity</legend>
+        <div class="field-grid">
+          <label>Student ID
+            <input type="text" id="fStudentId" maxlength="40">
+          </label>
+          <label>Full name *
+            <input type="text" id="fFullName" required maxlength="120">
+          </label>
+          <label>Sex
+            <select id="fSex"><option value=""></option><option>Male</option><option>Female</option></select>
+          </label>
+          <label>Date of birth
+            <input type="date" id="fDob">
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Academic</legend>
+        <div class="field-grid">
+          <label>Programme *
+            <select id="fProgram" required></select>
+          </label>
+          <label>Programme (if not listed)
+            <input type="text" id="fProgramOther" maxlength="120">
+          </label>
+          <label>Exam type
+            <select id="fExamType"><option value=""></option></select>
+          </label>
+          <label>Graduation year
+            <input type="number" id="fGradYear" min="2000" max="2100" step="1">
+          </label>
+          <label>House
+            <select id="fHouse"><option value="">— None —</option></select>
+          </label>
+          <label>Day or Boarding
+            <select id="fBoarding"><option value=""></option><option>Day</option><option>Boarding</option></select>
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Contact</legend>
+        <div class="field-grid">
+          <label>Mobile number
+            <input type="tel" id="fMobile" maxlength="20">
+          </label>
+          <label>Email address
+            <input type="email" id="fEmail" maxlength="120">
+          </label>
+          <label>Social media handle
+            <input type="text" id="fSocial" maxlength="60">
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Personal</legend>
+        <div class="field-grid">
+          <label>Region of birth
+            <select id="fRegion"><option value=""></option></select>
+          </label>
+          <label class="span-2">Residential address
+            <input type="text" id="fAddress" maxlength="160">
+          </label>
+          <label>GPS digital address
+            <input type="text" id="fGps" maxlength="30">
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Guardian</legend>
+        <div class="field-grid">
+          <label>Parent / guardian name
+            <input type="text" id="fGuardianName" maxlength="120">
+          </label>
+          <label>Parent / guardian contact
+            <input type="tel" id="fGuardianContact" maxlength="20">
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Disability</legend>
+        <div class="field-grid">
+          <label>Disability status
+            <select id="fDisability"><option value="No">No</option><option value="Yes">Yes</option></select>
+          </label>
+          <label>Type of impairment
+            <select id="fImpairment"><option value=""></option></select>
+          </label>
+        </div>
+      </fieldset>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="cancelStudentForm">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="saveStudentBtn">Save student</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div class="modal-backdrop" id="confirmBackdrop" hidden>
+  <div class="modal modal-small" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <div class="modal-head">
+      <h2 id="confirmTitle">Are you sure?</h2>
+    </div>
+    <p id="confirmBody" class="confirm-body"></p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="confirmCancel" type="button">Cancel</button>
+      <button class="btn btn-danger" id="confirmOk" type="button">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div id="printArea" class="print-only"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="js/reference-data.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
